@@ -25,67 +25,61 @@
 
 <script>
 
-// Fokus awal Indonesia
+// Buat map
 var map = L.map('map').setView([-2.5, 118], 5);
 
-// Tile OpenStreetMap
+// Tambah tile OpenStreetMap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// Cluster
+// Buat cluster group
 var markers = L.markerClusterGroup();
 
+// Ambil data CSV
 fetch('data.csv')
 .then(response => response.text())
 .then(text => {
 
     var rows = text.trim().split('\n').slice(1);
-    var validLatLng = [];
+    var latlngs = [];
 
     rows.forEach(row => {
 
         var cols = row.split(',');
-        if (cols.length < 3) return;
+        var id = cols[0];
+        var lat = parseFloat(cols[1]);
+        var lng = parseFloat(cols[2]);
 
-        var id = parseInt(cols[0].trim());
-        var lat = parseFloat(cols[1].trim());
-        var lng = parseFloat(cols[2].trim());
+        if (!isNaN(lat) && !isNaN(lng)) {
 
-        // Validasi koordinat
-        if (
-            !isNaN(lat) &&
-            !isNaN(lng) &&
-            lat !== 0 &&
-            lng !== 0 &&
-            lat >= -90 && lat <= 90 &&
-            lng >= -180 && lng <= 180
-        ) {
+            // Warna beda berdasarkan ID ganjil/genap
+            var color = (id % 2 == 0) ? "red" : "blue";
 
-            // OPTIONAL: Batasi hanya Indonesia
-            if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) {
+            var marker = L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: color,
+                color: "#000",
+                weight: 1,
+                fillOpacity: 0.8
+            });
 
-                var marker = L.circleMarker([lat, lng], {
-                    radius: 5,
-                    fillColor: "red",
-                    color: "#000",
-                    weight: 1,
-                    fillOpacity: 0.7
-                });
+            marker.bindPopup(
+                "<b>ID:</b> " + id +
+                "<br><b>Latitude:</b> " + lat +
+                "<br><b>Longitude:</b> " + lng
+            );
 
-                marker.bindPopup("ID: " + id);
-                markers.addLayer(marker);
-                validLatLng.push([lat, lng]);
-            }
+            markers.addLayer(marker);
+            latlngs.push([lat, lng]);
         }
-
     });
 
     map.addLayer(markers);
 
-    // Hanya zoom jika ada data valid
-    if (validLatLng.length > 0) {
-        map.fitBounds(validLatLng);
+    // Auto zoom ke semua titik
+    if (latlngs.length > 0) {
+        map.fitBounds(latlngs);
     }
 
 })
